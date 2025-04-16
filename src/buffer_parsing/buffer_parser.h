@@ -20,12 +20,23 @@ namespace buffer_parser {
         buffer_parser_obj(std::function<void(std::string)> enqueue_to_log_writer_callback, 
                           std::function<void(std::string)> log_self_callback, 
                           std::function<bool()> log_writer_thread_active_callback,
-                          parser_strategy parsing_strategy
+                          parser_strategy parsing_strategy_in=nullptr
                          ) : 
                          enqueue_to_log_writer_callback(enqueue_to_log_writer_callback),
                          log_self_callback(log_self_callback),
                          log_writer_thread_active_callback(log_writer_thread_active_callback),
-                         parsing_strategy(parsing_strategy)
+
+                         parsing_strategy{
+                            parsing_strategy_in 
+                                ? std::move(parsing_strategy_in)
+                                : [](const std::string& msg) -> std::optional<std::string> {
+                                    if (msg.empty()) {
+                                        return std::nullopt;
+                                    }
+                                    return msg;
+                                }
+                         }
+
                          {}
 
         void enqueue_msg(std::string msg);
