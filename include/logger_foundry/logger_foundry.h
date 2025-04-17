@@ -18,9 +18,14 @@ namespace logger_foundry {
     public:
         logger_daemon(const char* log_file_path, const char* socket_path, parser_strategy parsing_strategy, kill_logger_strategy kill_strategy=nullptr);
         logger_daemon(const char* log_file_path, const char* socket_path, kill_logger_strategy kill_strategy);
+        
         ~logger_daemon();
 
-        std::unique_ptr<daemon_orchestrator::daemon_orch_obj> daemon_orchestrator;
+        void log_orchestrator_info(std::string msg);
+    
+    private:
+
+        std::unique_ptr<daemon_orchestrator::daemon_orch_obj> daemon_orchestrator_obj;
         kill_logger_strategy kill_strategy;
         std::thread kill_strategy_monitor;
 
