@@ -11,21 +11,26 @@ namespace daemon_orchestrator {
             logger_messages_callback,
             [this]() { return log_writer.thread_active(); },
             parsing_strategy
-        ),
-        input_socket(
-            [this](std::string msg) { buffer_parser.enqueue_msg(std::move(msg)); }, 
-            logger_messages_callback, 
-            [this]() { return buffer_parser.thread_active(); },
-            socket_path
         )
-        {}
+        {
+            if (!(std::strcmp(socket_path, "") == 0)) {
+                input_socket = std::make_unique<input_socket::input_socket_obj>(
+                    [this](std::string msg) { buffer_parser.enqueue_msg(std::move(msg)); }, 
+                    logger_messages_callback, 
+                    [this]() { return buffer_parser.thread_active(); },
+                    socket_path
+                );
+            }
+        }
 
     void daemon_orch_obj::start_threads() {
         log_writer.init_thread();
         buffer_parser.init_thread();
-
-        input_socket.init_socket();
-        input_socket.init_thread();
+        
+        if (input_socket) {
+            input_socket->init_socket();
+            input_socket->init_thread();
+        }
         //buffer_parser.enqueue_msg("DEBUG|LogInfo|Logger Orchestrator|C++|Logger Threads Initialized|");
         //buffer_parser.enqueue_msg("DEBUG|LogInfo|Logger Orchestrator|C++|Logger Input Socket Initialized|");
     }
@@ -33,14 +38,16 @@ namespace daemon_orchestrator {
     void daemon_orch_obj::kill_threads() {
         //buffer_parser.enqueue_msg("DEBUG|LogInfo|Logger Orchestrator|C++|Killing Logger Threads|");
         //buffer_parser.enqueue_msg("DEBUG|LogInfo|Logger Orchestrator|C++|Closing Logger Socket|");
-        input_socket.close_socket();
-        input_socket.stop_thread();
+        if (input_socket) {
+            input_socket->close_socket();
+            input_socket->stop_thread();
+        }
 
         buffer_parser.stop_thread();
         log_writer.stop_thread();
     }
 
-    void daemon_orch_obj::log_orchestrator_info(std::string msg) { 
+    void daemon_orch_obj::log_direct(std::string msg) { 
         if (buffer_parser.thread_active() && log_writer.thread_active()) {
             buffer_parser.enqueue_msg(msg); 
         }

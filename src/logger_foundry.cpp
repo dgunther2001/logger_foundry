@@ -24,13 +24,9 @@ namespace logger_foundry {
                             
                                         
                                 }
-
-    logger_daemon::logger_daemon(const char* log_file_path, const char* socket_path, kill_logger_strategy kill_strategy) :
-        logger_daemon(log_file_path, socket_path, nullptr, std::move(kill_strategy))
-        {}
     
-    void logger_daemon::log_orchestrator_info(std::string msg) {
-        this->daemon_orchestrator_obj->log_orchestrator_info(msg);
+    void logger_daemon::log_direct(std::string msg) {
+        this->daemon_orchestrator_obj->log_direct(msg);
     }
 
     logger_daemon::~logger_daemon() {     
@@ -40,6 +36,34 @@ namespace logger_foundry {
             kill_strategy_monitor.join();
         } 
             
+    }
+
+
+
+
+
+    logger_daemon_builder& logger_daemon_builder::set_log_path(std::string log_file_path) {
+        this->log_file_path = std::move(log_file_path);
+        return *this;
+    }
+
+    logger_daemon_builder& logger_daemon_builder::set_socket_path(std::string socket_path) {
+        this->socket_path = std::move(socket_path);
+        return *this;
+    }
+
+    logger_daemon_builder& logger_daemon_builder::set_parser_strategy(parser_strategy parser_strategy_inst) {
+        this->parser_strategy_inst = std::move(parser_strategy_inst);
+        return *this;
+    }
+
+    logger_daemon_builder& logger_daemon_builder::set_kill_strategy(kill_logger_strategy kill_logger_strategy_inst) {
+        this->kill_logger_strategy_inst = std::move(kill_logger_strategy_inst);
+        return *this;
+    }
+
+    logger_daemon logger_daemon_builder::build() {
+        return logger_daemon(log_file_path.c_str(), socket_path.c_str(), parser_strategy_inst, kill_logger_strategy_inst);
     }
 }
 

@@ -12,7 +12,7 @@ namespace daemon_orchestrator {
         void kill_threads();
         void wait_until_queues_empty();
 
-        void log_orchestrator_info(std::string msg);
+        void log_direct(std::string msg);
 
     private:
         std::function<void(std::string)> logger_messages_callback = [this](std::string msg) {
@@ -21,7 +21,7 @@ namespace daemon_orchestrator {
 
         log_writer::log_writer_obj log_writer;
         buffer_parser::buffer_parser_obj buffer_parser;
-        input_socket::input_socket_obj input_socket;
+        std::unique_ptr<input_socket::input_socket_obj> input_socket = nullptr;
 
     };
 }
