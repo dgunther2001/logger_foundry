@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 3.15)
 project(logger_daemon)
 set(CMAKE_CXX_STANDARD 20)
 
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    message(FATAL_ERROR "CMAKE_INSTALL_PREFIX not set. Specify with -DCMAKE_INSTALL_PREFIX")
+endif()
+
 add_subdirectory(src)
 
 install(TARGETS logger_foundry
