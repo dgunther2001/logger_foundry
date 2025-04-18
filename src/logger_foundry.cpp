@@ -4,7 +4,7 @@
 #include <chrono>
 
 namespace logger_foundry {
-    logger_daemon::logger_daemon(const char* log_file_path, const char* socket_path, parser_strategy parsing_strategy, kill_logger_strategy kill_strategy) :
+    logger_daemon::logger_daemon(const std::string& log_file_path, const std::string& socket_path, parser_strategy parsing_strategy, kill_logger_strategy kill_strategy) :
                                 daemon_orchestrator_obj(std::make_unique<daemon_orchestrator::daemon_orch_obj>(log_file_path, socket_path, parsing_strategy)),
                                 kill_strategy{ std::move(kill_strategy) }
                                 { 
@@ -63,7 +63,7 @@ namespace logger_foundry {
     }
 
     logger_daemon logger_daemon_builder::build() {
-        return logger_daemon(log_file_path.c_str(), socket_path.c_str(), parser_strategy_inst, kill_logger_strategy_inst);
+        return logger_daemon(log_file_path, socket_path, parser_strategy_inst, kill_logger_strategy_inst);
     }
 }
 

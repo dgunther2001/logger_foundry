@@ -1,12 +1,7 @@
 #include "log_writer.h"
 
 namespace log_writer {
-    bool log_writer_obj::log_to_file(std::string file_path_, std::string msg) {
-        std::ofstream log_file(file_path_);
-        log_file << msg << std::endl;
-        log_file.close();
-        return true;
-    }
+
 
     void log_writer_obj::enqueue_msg(std::string msg) {
         {
@@ -24,7 +19,9 @@ namespace log_writer {
             while (!msgs_to_log.empty()) {
                 auto current_message = msgs_to_log.front();
                 msgs_to_log.pop();
-                log_stream << current_message << "\n";
+                if (valid_log_stream) {
+                    log_stream << current_message;
+                } 
             }
         }
         //thread_active_condition_var.notify_all();
@@ -33,7 +30,9 @@ namespace log_writer {
 
     void log_writer_obj::init_thread() {
         is_thread_running = true;
-        log_stream.open(file_path);
+        if (valid_log_stream) {
+            log_stream.open(file_path);
+        }
         writing_thread = std::thread(&log_writer_obj::run_thread, this);
     }
 

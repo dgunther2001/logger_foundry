@@ -1,7 +1,7 @@
 #include "daemon_orchestrator.h"
 
 namespace daemon_orchestrator {
-    daemon_orch_obj::daemon_orch_obj(const char* log_file_path, const char* socket_path, parser_strategy parsing_strategy) :
+    daemon_orch_obj::daemon_orch_obj(const std::string& log_file_path, const std::string& socket_path, parser_strategy parsing_strategy) :
         log_writer(
             log_file_path,
             logger_messages_callback
@@ -13,7 +13,7 @@ namespace daemon_orchestrator {
             parsing_strategy
         )
         {
-            if (!(std::strcmp(socket_path, "") == 0)) {
+            if (!socket_path.empty()) {
                 input_socket = std::make_unique<input_socket::input_socket_obj>(
                     [this](std::string msg) { buffer_parser.enqueue_msg(std::move(msg)); }, 
                     logger_messages_callback, 

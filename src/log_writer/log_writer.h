@@ -17,8 +17,10 @@ namespace log_writer {
                       ) : 
                       file_path(file_path),
                       log_self_callback(log_self_callback)
-                      {}
-        bool log_to_file(std::string file_path_, std::string msg);
+                      {
+                        if (!file_path.empty()) valid_log_stream = true;
+                      }
+        bool log_to_file(std::string file_path, std::string msg);
         void enqueue_msg(std::string msg);
         void init_thread();
         void stop_thread();
@@ -34,12 +36,14 @@ namespace log_writer {
 
         std::queue<std::string> msgs_to_log;
         std::ofstream log_stream;
+        bool valid_log_stream = false;
 
         std::condition_variable thread_active_condition_var;
         std::mutex thread_active_mutex;
         std::thread writing_thread;
         bool is_thread_running = false;
         std::string file_path;
+
 
     };
 }

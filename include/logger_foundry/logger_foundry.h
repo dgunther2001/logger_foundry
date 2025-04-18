@@ -24,7 +24,7 @@ namespace logger_foundry {
         void log_direct(std::string msg);
     
     private:
-        logger_daemon(const char* log_file_path, const char* socket_path, parser_strategy parsing_strategy, kill_logger_strategy kill_strategy);
+        logger_daemon(const std::string& log_file_path, const std::string& socket_path, parser_strategy parsing_strategy, kill_logger_strategy kill_strategy);
         std::unique_ptr<daemon_orchestrator::daemon_orch_obj> daemon_orchestrator_obj;
         kill_logger_strategy kill_strategy;
         std::thread kill_strategy_monitor;
@@ -40,7 +40,7 @@ namespace logger_foundry {
 
         logger_daemon build();
     private:
-        std::string log_file_path;
+        std::string log_file_path="";
         std::string socket_path = "";
         parser_strategy parser_strategy_inst = nullptr;
         kill_logger_strategy kill_logger_strategy_inst = nullptr;
