@@ -21,7 +21,7 @@ install(EXPORT logger_foundryTargets
 )
 
 install(DIRECTORY include/logger_foundry
-    DESTINATION include/logger_foundry
+    DESTINATION include
 )
 
 include(CMakePackageConfigHelpers)
