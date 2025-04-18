@@ -1,5 +1,3 @@
-project(logger_daemon)
-
 add_library(input_socket_lib
     input_socket.cpp
 )

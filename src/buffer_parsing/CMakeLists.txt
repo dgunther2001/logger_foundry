@@ -1,5 +1,3 @@
-project(logger_daemon)
-
 add_library(buffer_parsing_lib
     buffer_parser.cpp
 )

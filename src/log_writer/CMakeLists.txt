@@ -1,5 +1,3 @@
-project(logger_daemon)
-
 add_library(log_writer_lib
     log_writer.cpp
 )

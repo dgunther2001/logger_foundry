@@ -1,5 +1,3 @@
-project(logger_daemon)
-
 add_library(daemon_orchestrator_lib
     daemon_orchestrator.cpp
 )

@@ -6,7 +6,6 @@ import argparse
 
 
 def main():
-    subprocess.run(["rm", "-rf", "build"])
     os.makedirs("build", exist_ok=True)
 
     parser = argparse.ArgumentParser()

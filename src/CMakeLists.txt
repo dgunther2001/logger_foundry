@@ -1,5 +1,3 @@
-project(logger_daemon)
-
 add_subdirectory(buffer_parsing)
 add_subdirectory(log_writer)
 add_subdirectory(input_socket)
