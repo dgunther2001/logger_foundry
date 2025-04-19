@@ -18,6 +18,8 @@ def main():
     cmake_prefix_path = cmd_line_arguments.cmake_prefix
 
     with open(os.devnull, 'w') as devnull:
+        os.makedirs(cmake_prefix_path, exist_ok=True)
+
         if cmd_line_arguments.clean == "soft":
             subprocess.run(["make", "clean"], cwd="build", stdout=devnull, check=True)
 
@@ -29,7 +31,10 @@ def main():
         subprocess.run(["cmake", "..", "-DBUILD_SHARED_LIBS=ON", f"-DCMAKE_INSTALL_PREFIX={cmake_prefix_path}"], stdout=devnull, cwd="build", check=True)
         subprocess.run(["make"], cwd="build", stdout=devnull, check=True)
 
-        if ((cmd_line_arguments.clean == "hard") or (not os.listdir(cmake_prefix_path))):
+        config_relative_path = os.path.join("lib", "logger_foundryConfig.cmake")
+        config_absolute_path = os.path.join(cmake_prefix_path, config_relative_path)
+
+        if ((cmd_line_arguments.clean == "hard") or (not os.path.isfile(config_absolute_path))):
             subprocess.run(["make", "install"], stdout=devnull, cwd="build", check=True)
 
 main()
