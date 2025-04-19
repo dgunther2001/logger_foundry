@@ -28,7 +28,9 @@ def main():
 
         subprocess.run(["cmake", "..", "-DBUILD_SHARED_LIBS=ON", f"-DCMAKE_INSTALL_PREFIX={cmake_prefix_path}"], stdout=devnull, cwd="build", check=True)
         subprocess.run(["make"], cwd="build", stdout=devnull, check=True)
-        subprocess.run(["make", "install"], stdout=devnull, cwd="build", check=True)
+
+        if ((cmd_line_arguments.clean == "hard") or (not os.listdir(cmake_prefix_path))):
+            subprocess.run(["make", "install"], stdout=devnull, cwd="build", check=True)
 
 main()
 
