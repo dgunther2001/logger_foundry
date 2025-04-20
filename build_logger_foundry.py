@@ -3,6 +3,17 @@ import os
 import argparse
 import shutil
 
+def check_dependencies():
+    dependencies = ["cmake", "clang", "make", "python3"]
+    missing_dependencies = []
+    for dep in dependencies:
+        if shutil.which(dep) is None:
+            missing_dependencies.append(dep)
+
+    if len(missing_dependencies) != 0:
+        print(f"Missing dependencies: {' '.join(missing_dependencies)}. Running install.py")
+        subprocess.run(["python3", "install.py"])
+
 def parse_cmd_line_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--clean", nargs="?", const="soft", type=str, choices=["soft", "hard"])
@@ -11,6 +22,8 @@ def parse_cmd_line_args():
     return cmd_line_arguments
 
 def main():
+    check_dependencies()
+
     os.makedirs("build", exist_ok=True)
 
     cmd_line_arguments = parse_cmd_line_args()
