@@ -13,7 +13,7 @@ def install_linux(dependencies):
     subprocess.run(["apt-get", "install", "-y"] + dependencies, check=True)
 
 def get_linux_dep_names():
-    return ["build-essential", "cmake", "python3", "clang", "llvm"]
+    return ["build-essential", "cmake", "python3", "clang", "llvm", "make"]
 
 def install_mac_os(dependencies, missing_dependencies):
     # add check for homebrew here!!!
