@@ -5,6 +5,9 @@
 #include <vector>
 #include <optional>
 #include <thread>
+#include <functional>
+#include <condition_variable>
+#include <queue>
 
 using parser_strategy = std::function<std::optional<std::string>(const std::string&)>;
 

@@ -5,6 +5,7 @@
 #include <optional>
 #include <fstream>
 #include <queue>
+#include <functional>
 #include <condition_variable>
 #include <thread>
 #include <mutex>

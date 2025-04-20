@@ -28,7 +28,8 @@ def main():
             shutil.rmtree(".cache", ignore_errors=True)
             subprocess.run(["mkdir", "build"])
 
-        subprocess.run(["cmake", "..", "-DBUILD_SHARED_LIBS=ON", f"-DCMAKE_INSTALL_PREFIX={cmake_prefix_path}", "-DCMAKE_C_COMPILER=clang", "-DCMAKE_CXX_COMPILER=clang++"], stdout=devnull, cwd="build", check=True)
+        subprocess.run(["cmake", "..", "-DBUILD_SHARED_LIBS=ON", f"-DCMAKE_INSTALL_PREFIX={cmake_prefix_path}", \
+                        "-DCMAKE_C_COMPILER=clang", "-DCMAKE_CXX_COMPILER=clang++", "-DCMAKE_CXX_STANDARD=20","-DCMAKE_CXX_STANDARD_REQUIRED=ON"], stdout=devnull, cwd="build", check=True)
         subprocess.run(["make"], cwd="build", stdout=devnull, check=True)
 
         config_relative_path = os.path.join("lib", "logger_foundryConfig.cmake")

@@ -6,6 +6,8 @@
 #include <string>
 #include <thread>
 #include <iostream>
+#include <functional>
+#include <condition_variable>
 
 namespace input_socket {
     class input_socket_obj {
