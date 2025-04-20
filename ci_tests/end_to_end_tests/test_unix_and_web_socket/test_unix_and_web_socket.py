@@ -4,8 +4,15 @@ import platform
 import shutil
 import time
 import socket
+import argparse
 
-def setup_env():
+def parse_cmd_line_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--ci", nargs="?", const=60, type=int)
+    cmd_line_arguments = parser.parse_args()
+    return cmd_line_arguments
+
+def setup_env(is_ci):
     subprocess.run(["python3", "build_test_foundry.py"], cwd="../..")
     if os.path.exists("tmp"):
         shutil.rmtree("tmp")
@@ -16,13 +23,17 @@ def setup_env():
     os.makedirs("logs")
     #os.path.join("logs", "log1.log")
 
-    os.environ["CLEANUP_TIME"] = "10"
+    if (is_ci):
+        os.environ["CLEANUP_TIME"] = str(is_ci)
+    else: 
+        os.environ["CLEANUP_TIME"] = "10"
 
 def compile_and_run_test():
     if platform.system() == "Darwin":
         rpath_flag = "-Wl,-rpath,@executable_path/../../logger_foundry_lib/lib"
     elif platform.system() == "Linux":
-        rpath_flag = "-Wl,-rpath,$ORIGIN/../../logger_foundry_lib/lib"
+        os.environ["LD_LIBRARY_PATH"] = "../../logger_foundry_lib/lib"
+        rpath_flag = "-Wl,-rpath,'$ORIGIN/../../logger_foundry_lib/lib'"
     else:
         rpath_flag = ""
 
@@ -31,6 +42,10 @@ def compile_and_run_test():
                 "-std=c++20",  
                 rpath_flag,
                 "-llogger_foundry",
+                "-ldaemon_orchestrator_lib",
+                "-lbuffer_parsing_lib",
+                "-llog_writer_lib",
+                "-linput_socket_lib",
                 "logger_daemon.cpp"], check=True)
 
     listener_proc = subprocess.Popen(["./listener"])
@@ -81,10 +96,22 @@ def send_ipv4_message(host, port, message):
         sock.connect((host, port))
         sock.sendall(message.encode('utf-8'))
 
+def validate_file_contents():
+    expected_strings = ["HELLOOOO FROM SOCKET 1\n", "HELLOOOO FROM SOCKET 2\n", "HELLOOO FROM IPV4\n", "HELLOOO FROM IPV6\n"]
 
+    with open("logs/log1.log", "r", encoding="utf-8") as f:
+        contents = f.read()
+
+    for expected in expected_strings:
+        if expected not in contents:
+            raise AssertionError(f"Missing log message: {expected}")
+    
+    print("Multi Unix, ipv4, ipv6 daemon log file contains all expected strings.")
 
 def main():
-    setup_env()
+    cmd_line_args = parse_cmd_line_args()
+
+    setup_env(cmd_line_args.ci)
     listener_proc = compile_and_run_test()
     wait_for_unix_sockets(["tmp/sock1.sock", "tmp/sock2.sock"])
     wait_for_port('::1', 50051)
@@ -96,6 +123,7 @@ def main():
 
     listener_proc.wait()
 
+    validate_file_contents()
 
     cleanup()
 

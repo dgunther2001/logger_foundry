@@ -48,12 +48,12 @@ namespace logger_foundry {
     }
 
     logger_daemon_builder& logger_daemon_builder::add_unix_socket(std::string socket_path, uint16_t backlog) {
-        this->unix_socket_configs.emplace_back(std::move(socket_path), backlog);
+        this->unix_socket_configs.emplace_back(socket_config::unix_socket_config{std::move(socket_path), backlog});
         return *this;
     }
 
     logger_daemon_builder& logger_daemon_builder::add_web_socket(uint16_t port, uint16_t backlog, std::string host) {
-        this->web_socket_configs.emplace_back(port, backlog, std::move(host));
+        this->web_socket_configs.emplace_back(socket_config::web_socket_config{port, backlog, std::move(host)});
         return *this;
     }
 

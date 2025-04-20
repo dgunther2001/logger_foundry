@@ -9,7 +9,7 @@ int main() {
         .add_web_socket(50051, 20)
         .add_web_socket(50052, 20)
         .set_kill_strategy([] {
-            std::this_thread::sleep_for(std::chrono::seconds(5));
+            std::this_thread::sleep_for(std::chrono::seconds(std::stoi(std::getenv("CLEANUP_TIME"))));
         })
         .build();
 
