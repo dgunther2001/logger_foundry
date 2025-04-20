@@ -4,8 +4,8 @@
 #include <chrono>
 
 namespace logger_foundry {
-    logger_daemon::logger_daemon(const std::string& log_file_path, std::vector<socket_config::unix_socket_config> unix_socket_configs, parser_strategy parsing_strategy, kill_logger_strategy kill_strategy) :
-                                daemon_orchestrator_obj(std::make_unique<daemon_orchestrator::daemon_orch_obj>(log_file_path, std::move(unix_socket_configs), parsing_strategy)),
+    logger_daemon::logger_daemon(const std::string& log_file_path, std::vector<socket_config::unix_socket_config> unix_socket_configs, std::vector<socket_config::web_socket_config> web_socket_configs, parser_strategy parsing_strategy, kill_logger_strategy kill_strategy) :
+                                daemon_orchestrator_obj(std::make_unique<daemon_orchestrator::daemon_orch_obj>(log_file_path, std::move(unix_socket_configs), std::move(web_socket_configs), parsing_strategy)),
                                 kill_strategy{ std::move(kill_strategy) }
                                 { 
                                     daemon_orchestrator_obj->start_threads(); 
@@ -47,8 +47,13 @@ namespace logger_foundry {
         return *this;
     }
 
-    logger_daemon_builder& logger_daemon_builder::add_unix_socket(std::string socket_path, uint32_t backlog) {
+    logger_daemon_builder& logger_daemon_builder::add_unix_socket(std::string socket_path, uint16_t backlog) {
         this->unix_socket_configs.emplace_back(std::move(socket_path), backlog);
+        return *this;
+    }
+
+    logger_daemon_builder& logger_daemon_builder::add_web_socket(uint16_t port, uint16_t backlog, std::string host) {
+        this->web_socket_configs.emplace_back(port, backlog, std::move(host));
         return *this;
     }
 
@@ -63,7 +68,7 @@ namespace logger_foundry {
     }
 
     logger_daemon logger_daemon_builder::build() {
-        return logger_daemon(log_file_path, std::move(unix_socket_configs), parser_strategy_inst, kill_logger_strategy_inst);
+        return logger_daemon(log_file_path, std::move(unix_socket_configs), std::move(web_socket_configs), parser_strategy_inst, kill_logger_strategy_inst);
     }
 }
 

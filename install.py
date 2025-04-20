@@ -2,6 +2,7 @@ import shutil
 import subprocess
 import platform
 import sys
+import os
 
 def dependency_exists(dependency):
     return shutil.which(dependency) is not None
@@ -27,8 +28,9 @@ def install_mac_os(dependencies, missing_dependencies):
         else:
             print(f"[-] No brew mapping for '{dep}', please install yourself and add to $PATH (Xcode CLI).")
 
+
 def get_mac_os_dep_names():
-    return {"cmake" : "cmake", "python3" : "python", "clang" : "llvm"}
+    return {"cmake" : "cmake", "python3" : "python"}
 
 def mac_os_check_brew_installation():
     return shutil.which("brew") is not None

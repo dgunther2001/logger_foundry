@@ -1,7 +1,7 @@
 #include "daemon_orchestrator.h"
 
 namespace daemon_orchestrator {
-    daemon_orch_obj::daemon_orch_obj(const std::string& log_file_path, std::vector<socket_config::unix_socket_config> unix_socket_configs, parser_strategy parsing_strategy) :
+    daemon_orch_obj::daemon_orch_obj(const std::string& log_file_path, std::vector<socket_config::unix_socket_config> unix_socket_configs, std::vector<socket_config::web_socket_config> web_socket_configs,  parser_strategy parsing_strategy) :
         log_writer(
             log_file_path,
             logger_messages_callback
@@ -15,13 +15,30 @@ namespace daemon_orchestrator {
         {
             
             for (auto const& unix_socket_path_info : unix_socket_configs) {
-                unix_listening_sockets.emplace_back(std::make_unique<input_socket::input_socket_obj>(
-                    [this](std::string msg) { buffer_parser.enqueue_msg(std::move(msg)); }, 
-                    logger_messages_callback, 
-                    [this]() { return buffer_parser.thread_active(); },
-                    unix_socket_path_info.unix_socket_path,
-                    unix_socket_path_info.backlog
-                ));
+                unix_listening_sockets.emplace_back(
+                    input_socket::input_socket_builder()
+                        .set_enqueue_buffer_parser_callback( [this](std::string msg) { buffer_parser.enqueue_msg(std::move(msg)); } )
+                        .set_direct_log_callback(logger_messages_callback)
+                        .set_parser_active_callback( [this]() { return buffer_parser.thread_active(); } )
+                        .set_socket_path(unix_socket_path_info.unix_socket_path)
+                        .set_backlog(unix_socket_path_info.backlog)
+                        .set_socket_type(input_socket::socket_type::UNIX)
+                        .build()
+                );
+            }
+
+            for (auto const& web_socket_path_info : web_socket_configs) {
+                web_listening_sockets.emplace_back(
+                    input_socket::input_socket_builder()
+                        .set_enqueue_buffer_parser_callback( [this](std::string msg) { buffer_parser.enqueue_msg(std::move(msg)); } )
+                        .set_direct_log_callback(logger_messages_callback)
+                        .set_parser_active_callback( [this]() { return buffer_parser.thread_active(); } )
+                        .set_host_path(web_socket_path_info.host)
+                        .set_port(web_socket_path_info.port)
+                        .set_backlog(web_socket_path_info.backlog)
+                        .set_socket_type(input_socket::socket_type::WEB)
+                        .build()
+                );
             }
             
             
@@ -34,6 +51,11 @@ namespace daemon_orchestrator {
         for (auto const& unix_socket : unix_listening_sockets) {
             unix_socket->init_socket();
             unix_socket->init_thread();
+        }
+
+        for (auto const& ip_socket : web_listening_sockets) {
+            ip_socket->init_socket();
+            ip_socket->init_thread();
         }
         /*
         if (input_socket) {
@@ -52,6 +74,11 @@ namespace daemon_orchestrator {
             unix_socket->close_socket();
             unix_socket->stop_thread();
         }
+
+        for (auto const& ip_socket : web_listening_sockets) {
+            ip_socket->close_socket();
+            ip_socket->stop_thread();
+        }
         /*
         if (input_socket) {
             input_socket->close_socket();
@@ -69,8 +96,16 @@ namespace daemon_orchestrator {
         }
     }
 
+    void create_log_file(const std::string& log_file_path) {
+        std::ofstream log_file(log_file_path, std::ios::out | std::ios::trunc);
+        if (log_file.is_open()) {
+            throw std::runtime_error("Log file already open elsewhere. Please try again.");
+        }
+    }
+
     void daemon_orch_obj::wait_until_queues_empty() {
         buffer_parser.wait_until_queue_empty();
         log_writer.wait_until_queue_empty();
     }
+    
 }

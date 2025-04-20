@@ -28,7 +28,7 @@ namespace logger_foundry {
         void log_direct(std::string msg);
     
     private:
-        logger_daemon(const std::string& log_file_path, std::vector<socket_config::unix_socket_config> unix_socket_config, parser_strategy parsing_strategy, kill_logger_strategy kill_strategy);
+        logger_daemon(const std::string& log_file_path, std::vector<socket_config::unix_socket_config> unix_socket_config, std::vector<socket_config::web_socket_config> web_socket_configs, parser_strategy parsing_strategy, kill_logger_strategy kill_strategy);
         std::unique_ptr<daemon_orchestrator::daemon_orch_obj> daemon_orchestrator_obj;
         kill_logger_strategy kill_strategy;
         std::thread kill_strategy_monitor;
@@ -38,7 +38,8 @@ namespace logger_foundry {
     class logger_daemon_builder {
     public:
         logger_daemon_builder& set_log_path(std::string log_file_path);
-        logger_daemon_builder& add_unix_socket(std::string socket_path, uint32_t backlog);
+        logger_daemon_builder& add_unix_socket(std::string socket_path, uint16_t backlog);
+        logger_daemon_builder& add_web_socket(uint16_t port, uint16_t backlog, std::string host="");
         logger_daemon_builder& set_parser_strategy(parser_strategy parser_strategy_inst);
         logger_daemon_builder& set_kill_strategy(kill_logger_strategy kill_logger_strategy_inst);
 
@@ -46,6 +47,7 @@ namespace logger_foundry {
     private:
         std::string log_file_path="";
         std::vector<socket_config::unix_socket_config> unix_socket_configs;
+        std::vector<socket_config::web_socket_config> web_socket_configs;
         parser_strategy parser_strategy_inst = nullptr;
         kill_logger_strategy kill_logger_strategy_inst = nullptr;
     };

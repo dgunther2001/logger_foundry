@@ -14,7 +14,7 @@ def setup_env():
 
     os.makedirs("tmp")
     os.makedirs("logs")
-    os.path.join("logs", "log1.log")
+    #os.path.join("logs", "log1.log")
 
     os.environ["CLEANUP_TIME"] = "10"
 
@@ -46,6 +46,13 @@ def wait_for_unix_socket(socket_path, timeout=30):
         time.sleep(0.01)
     print(f"Socket created: {socket_path}")
 
+def wait_for_port(host, port, timeout=30):
+    start = time.time()
+    while time.time() - start < timeout:
+        with socket.create_connection((host, port), timeout=timeout):
+            return
+        time.sleep(0.01)
+
 def wait_for_unix_sockets(sockets):
     for socket in sockets:
         wait_for_unix_socket(socket)
@@ -64,13 +71,27 @@ def send_data(socket_path, message):
         client.sendall(message.encode("utf-8"))
 
 
+def send_ipv6_message(host, port, message):
+    with socket.socket(socket.AF_INET6, socket.SOCK_STREAM) as sock:
+        sock.connect((host, port))
+        sock.sendall(message.encode('utf-8'))
+
+def send_ipv4_message(host, port, message):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        sock.connect((host, port))
+        sock.sendall(message.encode('utf-8'))
+
+
 
 def main():
     setup_env()
     listener_proc = compile_and_run_test()
     wait_for_unix_sockets(["tmp/sock1.sock", "tmp/sock2.sock"])
+    wait_for_port('::1', 50051)
     send_data("tmp/sock1.sock", "HELLOOOO FROM SOCKET 1")
     send_data("tmp/sock2.sock", "HELLOOOO FROM SOCKET 2")
+    send_ipv4_message('127.0.0.1', 50051, "HELLOOO FROM IPV4")
+    send_ipv6_message('::1', 50051, "HELLOOO FROM IPV6")
 
 
     listener_proc.wait()
