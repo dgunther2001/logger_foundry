@@ -25,7 +25,7 @@ namespace input_socket {
             return;
         }
     
-        if (listen(sockfd, 20) == -1) {
+        if (listen(sockfd, backlog) == -1) {
             perror("listen");
             return;
         }

@@ -10,6 +10,7 @@ add_library(logger_foundry
 target_include_directories(logger_foundry
     PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../config_headers>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/daemon_orchestrator>
         $<INSTALL_INTERFACE:include>
 )

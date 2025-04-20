@@ -21,6 +21,13 @@ install(EXPORT logger_foundryTargets
     DESTINATION lib
 )
 
+install(#DIRECTORY include/logger_foundry
+    FILES ${CMAKE_CURRENT_SOURCE_DIR}/config_headers/socket_config_structs.h
+    #$<INSTALL_INTERFACE:include>
+    DESTINATION include
+    #FILES_MATCHING PATTERN "*.h"
+)
+
 install(DIRECTORY include/logger_foundry
     DESTINATION include
 )

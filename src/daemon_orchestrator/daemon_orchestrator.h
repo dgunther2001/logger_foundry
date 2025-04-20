@@ -4,10 +4,13 @@
 #include "input_socket.h"
 #include "log_writer.h"
 
+#include "../../config_headers/socket_config_structs.h"
+
 namespace daemon_orchestrator {
+
     class daemon_orch_obj {
     public:
-        daemon_orch_obj(const std::string& log_file_path, const std::string& socket_path, parser_strategy parsing_strategy=nullptr);
+        daemon_orch_obj(const std::string& log_file_path, std::vector<socket_config::unix_socket_config> unix_socket_config, parser_strategy parsing_strategy=nullptr);
         void start_threads();
         void kill_threads();
         void wait_until_queues_empty();
@@ -21,7 +24,7 @@ namespace daemon_orchestrator {
 
         log_writer::log_writer_obj log_writer;
         buffer_parser::buffer_parser_obj buffer_parser;
-        std::unique_ptr<input_socket::input_socket_obj> input_socket = nullptr;
+        std::vector<std::unique_ptr<input_socket::input_socket_obj>> unix_listening_sockets;
 
     };
 }

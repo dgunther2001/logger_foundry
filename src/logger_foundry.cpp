@@ -4,8 +4,8 @@
 #include <chrono>
 
 namespace logger_foundry {
-    logger_daemon::logger_daemon(const std::string& log_file_path, const std::string& socket_path, parser_strategy parsing_strategy, kill_logger_strategy kill_strategy) :
-                                daemon_orchestrator_obj(std::make_unique<daemon_orchestrator::daemon_orch_obj>(log_file_path, socket_path, parsing_strategy)),
+    logger_daemon::logger_daemon(const std::string& log_file_path, std::vector<socket_config::unix_socket_config> unix_socket_configs, parser_strategy parsing_strategy, kill_logger_strategy kill_strategy) :
+                                daemon_orchestrator_obj(std::make_unique<daemon_orchestrator::daemon_orch_obj>(log_file_path, std::move(unix_socket_configs), parsing_strategy)),
                                 kill_strategy{ std::move(kill_strategy) }
                                 { 
                                     daemon_orchestrator_obj->start_threads(); 
@@ -47,8 +47,8 @@ namespace logger_foundry {
         return *this;
     }
 
-    logger_daemon_builder& logger_daemon_builder::set_socket_path(std::string socket_path) {
-        this->socket_path = std::move(socket_path);
+    logger_daemon_builder& logger_daemon_builder::add_unix_socket(std::string socket_path, uint32_t backlog) {
+        this->unix_socket_configs.emplace_back(std::move(socket_path), backlog);
         return *this;
     }
 
@@ -63,7 +63,7 @@ namespace logger_foundry {
     }
 
     logger_daemon logger_daemon_builder::build() {
-        return logger_daemon(log_file_path, socket_path, parser_strategy_inst, kill_logger_strategy_inst);
+        return logger_daemon(log_file_path, std::move(unix_socket_configs), parser_strategy_inst, kill_logger_strategy_inst);
     }
 }
 

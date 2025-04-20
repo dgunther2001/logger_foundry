@@ -36,7 +36,7 @@ namespace buffer_parser {
                                     if (msg.empty()) {
                                         return std::nullopt;
                                     }
-                                    return msg;
+                                    return (msg + "\n");
                                 }
                          }
 

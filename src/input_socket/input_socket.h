@@ -10,12 +10,14 @@
 #include <condition_variable>
 
 namespace input_socket {
+
     class input_socket_obj {
     public:
         input_socket_obj(std::function<void(std::string)> enqueue_to_buffer_parser_callback, 
                          std::function<void(std::string)> log_self_callback, 
                          std::function<bool()> parser_thread_active_callback,
-                         const std::string& socket_path
+                         const std::string& socket_path,
+                         uint32_t backlog
                         ) : 
                         enqueue_to_buffer_parser_callback(enqueue_to_buffer_parser_callback),
                         log_self_callback(log_self_callback),
@@ -36,6 +38,7 @@ namespace input_socket {
 
         int sockfd = -1;
         std::string SOCKET_PATH;
+        uint32_t backlog = 20;
 
         std::function<void(std::string)> enqueue_to_buffer_parser_callback;
         std::function<void(std::string)> log_self_callback;
