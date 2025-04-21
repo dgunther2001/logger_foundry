@@ -14,7 +14,7 @@ namespace logger_foundry {
                                         if (this->kill_strategy) {
                                             this->kill_strategy();
                                         } else {
-                                            std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+                                            //std::this_thread::sleep_for(std::chrono::milliseconds(5000));
                                             //this->daemon_orchestrator_obj->wait_until_queues_empty();
                                         }
 

@@ -1,0 +1,29 @@
+name: Build and Run Logger Foundry
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  #workflow_dispatch:
+
+jobs:
+    Linux-Build:
+        runs-on: ubuntu-latest
+        steps:
+        - name: Checkout
+          uses: actions/checkout@v4
+
+        - name: Build and run Logger Foundry
+          #working-directory: logger_foundry
+          run: python3 run_ci.py --ci 120
+
+    Mac-Build:
+        runs-on: macos-latest
+        steps:
+        - name: Checkout
+          uses: actions/checkout@v4
+
+        - name: Build and run Logger Foundry
+          #working-directory: logger_foundry
+          run: python3 run_ci.py --ci 45

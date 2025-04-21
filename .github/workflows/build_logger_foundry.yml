@@ -1,0 +1,55 @@
+name: Build Logger Foundry
+
+on:
+  #push:
+    #branches: [main]
+  #pull_request:
+    #branches: [main]
+  workflow_dispatch:
+
+jobs:
+    Linux-Build:
+        runs-on: ubuntu-latest
+        steps:
+        - name: Checkout
+          uses: actions/checkout@v4
+
+        - name: Build logger_foundry
+          working-directory: logger_foundry
+          env:
+            LOGGER_FOUNDRY_INSTALL_PATH: ${{ github.workspace }}/logger_foundry_lib
+          run: |
+            mkdir -p $LOGGER_FOUNDRY_INSTALL_PATH
+            python3 build_logger_foundry.py --cmake-prefix $LOGGER_FOUNDRY_INSTALL_PATH 
+
+        - name: Check that libs exist
+          run: |
+            echo "Checking for lib files in logger_foundry_lib/lib"
+            ls -l logger_foundry_lib/lib
+            if [ ! -f logger_foundry_lib/lib/liblogger_foundry.so ] && [ ! -f logger_foundry_lib/lib/liblogger_foundry.dylib ]; then
+                echo "Logger Foundry Libraries not Built!"
+                exit 1
+            fi
+
+    Mac-Build:
+        runs-on: macos-latest
+        steps:
+        - name: Checkout
+          uses: actions/checkout@v4
+
+        - name: Build logger_foundry
+          working-directory: logger_foundry
+          env:
+            LOGGER_FOUNDRY_INSTALL_PATH: ${{ github.workspace }}/logger_foundry_lib
+          run: |
+            mkdir -p $LOGGER_FOUNDRY_INSTALL_PATH
+            python3 build_logger_foundry.py --cmake-prefix $LOGGER_FOUNDRY_INSTALL_PATH 
+
+        - name: Check that libs exist
+          run: |
+            echo "Checking for lib files in logger_foundry_lib/lib"
+            ls -l logger_foundry_lib/lib
+            if [ ! -f logger_foundry_lib/lib/liblogger_foundry.so ] && [ ! -f logger_foundry_lib/lib/liblogger_foundry.dylib ]; then
+                echo "Logger Foundry Libraries not Built!"
+                exit 1
+            fi
