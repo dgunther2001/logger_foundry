@@ -35,8 +35,8 @@ logger_foundry::logger_daemon orchestrator = logger_foundry::logger_daemon_build
     .set_log_path("my_log_path")
     .add_unix_socket("my_socket_path", backlog)
     .add_unix_socket("my_other_socket_path", backlog)
-    .add_web_socket("my_ipv4_socket", backlog)
-    .add_web_socket("my_ipv6_socket", backlog, "::1")
+    .add_web_socket(port_number, backlog)
+    .add_web_socket(another_port_number, backlog, "::1")
     .set_parser_strategy(&my_parser_strategy)
     .set_kill_strategy(&my_kill_strategy)
     .build();
@@ -55,15 +55,15 @@ parser_strategy = std::function<std::optional<std::string>(const std::string&)>;
 kill_logger_strategy = std::function<void()>;
 ```
 Technically none of them are required and some of them can be used multiple times (but technically nothing is stopping you from using none of them or all of them as many times as you want. It just might not do anything if you do). Lets look at each and explain exactly what they do.  
-1. `.set_log_path("my_log_path")`  
+1. ```.set_log_path("my_log_path")```  
 Sets the file path that the daemon will write to. If this is called 0 times, the daemon will run, it just won't write to anything. Calling it once is the expected behavior. If you call it multiple times, it will just overwrite what log file path you will write to.  
-2. `set_parser_strategy(parser_strategy parser_strategy_inst)`  
-Defines how you are going to decode the messages sent into the daemon. You're just receiving characters (bytes). Logger foundry allows you to specify exactly how you want to decode those bytes and put them in the log file. `parser_strategy` is just an alias for `std::function<std::optional<std::string>(const std::string&)>`. You define a function with a signature `std::optional<std::string> my_byte_parser(const std::string& bytes)`. Functionally you take in a string and manipulate it into the form that you want in the log file. It's wrapped in an optional type so that you can specify an `std::nullopt` for certain messages you don't want in the log file that will be ignored by the rest of the daemon system. The parser strategy can be defined 0 times, which uses a default parser that just directly prints the received message with an appended newline to the logfile. If this build argument is called once, the daemon will use that strategy. If you define it more than once, it will override the strategy, as with setting the log file path.  
-3. `set_kill_strategy(kill_logger_strategy kill_logger_strategy_inst)`  
+2. ```set_parser_strategy(parser_strategy parser_strategy_inst)```  
+Defines how you are going to decode the messages sent into the daemon. You're just receiving characters (bytes). Logger foundry allows you to specify exactly how you want to decode those bytes and put them in the log file. `parser_strategy` is just an alias for `std::function<std::optional<std::string>(const std::string&)>`. You define a function with a signature ```std::optional<std::string> my_byte_parser(const std::string& bytes)```. Functionally you take in a string and manipulate it into the form that you want in the log file. It's wrapped in an optional type so that you can specify an `std::nullopt` for certain messages you don't want in the log file that will be ignored by the rest of the daemon system. The parser strategy can be defined 0 times, which uses a default parser that just directly prints the received message with an appended newline to the logfile. If this build argument is called once, the daemon will use that strategy. If you define it more than once, it will override the strategy, as with setting the log file path.  
+3. ```set_kill_strategy(kill_logger_strategy kill_logger_strategy_inst)```  
 This defines how the daemon will be shutdown (close all socket connections, flush remaining log messages, and kill all threads). `kill strategy` is just an alias for `std::function<void()>`. Functionally the daemon spins up a monitor thread that periodically watches for the kill condition to be met, signals the other components to shutdown. Basically, once the kill strategy function returns from execution, the monitor thread joins and signals a shutdown. If the kill strategy isn't defined, then the daemon never shuts down and lives indefinitely until a `SIGINT` is received. If this build argument is called once, the daemon will shutdown based on the user defined strategy. If you call it more than once, it will overwrite the previous kill strategy as with setting the log file path.  
-4. `add_unix_socket(std::string socket_path, uint16_t backlog)`  
+4. ```add_unix_socket(std::string socket_path, uint16_t backlog)```  
 This tells the daemon to listen on a Unix Socket. **NOTE:** that the user is responsible for creating the `.sock` file and verifying it's existence before building the daemon with a Unix Socket with this parameter. The two arguments are `socket_path` and `backlog`. `socket_path` specifies where the `.sock` file used for this connection lives. `backlog` specifies how many pending connections that can be queued while the daemon isn't actively accepting the connection. If this build argument is called 0 times, the daemon doesn't listen on any Unix Sockets. If it is called 1 or more times, the daemon will listen on all Unix Sockets specified.  
-5. `add_web_socket(uint16_t port, uint16_t backlog, std::string host="")`  
+5. ```add_web_socket(uint16_t port, uint16_t backlog, std::string host="")```
 This tells the daemon to listen on a particular port (host parameter is optional and currently unused). **NOTE:** that the user is responsible for opening the port and verifying that it is open before building the daemon with this parameter. The two used arguments are `port` and `backlog`. `port` specifies which port the daemon will listen on for incoming connections. `backlog` specifies how many pending connections that can be queued while the daemon isn't actively accepting the connection. This should be IPv4/IPv6 agnostic. If this build argument is called 0 times, the daemon doesn't listen on any IP Sockets. If it is called one or more times, the daemon will listen on all IP Sockets (ports) specified.  
 
 ### Logging From Within the Same Process
@@ -105,13 +105,13 @@ Here is the output with some very simple log messages using those strategies:
 ### Building From Source and Project Integration
 
 **Building From Source:**  
-1. `git clone /url/to/this/repository/`  
-2. `python3 build_logger_foundry.py --cmake-prefix /path/to/desired/install/location`  
+1. ```git clone /url/to/this/repository/```
+2. ```python3 build_logger_foundry.py --cmake-prefix /path/to/desired/install/location```  
 
 **Integration into CMake and Project:** 
 In your root level `CMakeLists.txt` do the following:  
 &emsp; Verify that the package is available:  
-&emsp; `find_package(logger_foundry desired_version_number REQUIRED)`  
+&emsp; ```find_package(logger_foundry desired_version_number REQUIRED)``` 
 &emsp; Add an executable or a library:  
 ```
 add_executable(my_executable
@@ -127,7 +127,7 @@ add_library(my_library
 target_include_directories(my_library PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 ```
 &emsp; Link Logger Foundry into your library or executable:  
-&emsp; `target_link_libraries(my_executable_or_library PRIVATE logger_foundry::logger_foundry)`
+&emsp; ```target_link_libraries(my_executable_or_library PRIVATE logger_foundry::logger_foundry)```
 
 **Building Your Project:**  
 After integrating with CMake, MAKE SURE that your `LD_LIBRARY_PATH` is set to where Logger Foundry was built (same as `--cmake-prefix`) before building your project.  
@@ -135,3 +135,7 @@ After integrating with CMake, MAKE SURE that your `LD_LIBRARY_PATH` is set to wh
 ### That's it. It's that easy.
 
 **NOTE:** as per the [License](LICENSE.md), Logger Foundry is released under the PolyForm Noncommercial License 1.0.0. If you wish to use Logger Foundry in a commercial product, you must contact me to arrange a separate agreement.
+
+### Further Reading for Those Interested
+**Accepting Unix Socket Connections:** [IBM-Docs](https://www.ibm.com/docs/en/aix/7.2?topic=examples-accepting-unix-stream-connections-example-program)  
+**Accepting IPv4 and IPv6 Connections:** [IBM-Docs](https://www.ibm.com/docs/en/i/7.3.0?topic=sscaaiic-example-accepting-connections-from-both-ipv6-ipv4-clients)
