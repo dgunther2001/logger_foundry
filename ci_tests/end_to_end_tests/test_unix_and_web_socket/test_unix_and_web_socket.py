@@ -5,6 +5,7 @@ import shutil
 import time
 import socket
 import argparse
+import signal
 
 def parse_cmd_line_args():
     parser = argparse.ArgumentParser()
@@ -12,7 +13,7 @@ def parse_cmd_line_args():
     cmd_line_arguments = parser.parse_args()
     return cmd_line_arguments
 
-def setup_env(is_ci):
+def setup_env():
     subprocess.run(["python3", "build_test_foundry.py"], cwd="../..")
     if os.path.exists("tmp"):
         shutil.rmtree("tmp")
@@ -23,10 +24,6 @@ def setup_env(is_ci):
     os.makedirs("logs")
     #os.path.join("logs", "log1.log")
 
-    if (is_ci):
-        os.environ["CLEANUP_TIME"] = str(is_ci)
-    else: 
-        os.environ["CLEANUP_TIME"] = "10"
 
 def compile_and_run_test():
     if platform.system() == "Darwin":
@@ -111,22 +108,26 @@ def validate_file_contents():
 def main():
     cmd_line_args = parse_cmd_line_args()
 
-    setup_env(cmd_line_args.ci)
+    setup_env()
     listener_proc = compile_and_run_test()
     wait_for_unix_sockets(["tmp/sock1.sock", "tmp/sock2.sock"])
     wait_for_port('::1', 50051)
+    wait_for_port('::1', 50052)
     send_data("tmp/sock1.sock", "HELLOOOO FROM SOCKET 1")
     send_data("tmp/sock2.sock", "HELLOOOO FROM SOCKET 2")
     send_ipv4_message('127.0.0.1', 50051, "HELLOOO FROM IPV4")
-    send_ipv6_message('::1', 50051, "HELLOOO FROM IPV6")
+    send_ipv6_message('::1', 50052, "HELLOOO FROM IPV6")
 
+    if cmd_line_args.ci:
+        time.sleep(10)
+    else:
+        time.sleep(5)
 
+    listener_proc.send_signal(signal.SIGINT)
     listener_proc.wait()
 
     validate_file_contents()
 
     cleanup()
-
-
 
 main()

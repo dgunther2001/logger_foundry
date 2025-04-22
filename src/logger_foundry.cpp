@@ -2,27 +2,34 @@
 #include "daemon_orchestrator.h"
 
 #include <chrono>
+#include <csignal>
+
+static volatile sig_atomic_t shutdown_requested = 0;
+extern "C" void default_sigint_handler(int) {
+    shutdown_requested = 1;
+}
 
 namespace logger_foundry {
     logger_daemon::logger_daemon(const std::string& log_file_path, std::vector<socket_config::unix_socket_config> unix_socket_configs, std::vector<socket_config::web_socket_config> web_socket_configs, parser_strategy parsing_strategy, kill_logger_strategy kill_strategy) :
                                 daemon_orchestrator_obj(std::make_unique<daemon_orchestrator::daemon_orch_obj>(log_file_path, std::move(unix_socket_configs), std::move(web_socket_configs), parsing_strategy)),
                                 kill_strategy{ std::move(kill_strategy) }
                                 { 
+                                    if (!this->kill_strategy) {
+                                        std::signal(SIGINT, default_sigint_handler);
+                                    }
                                     daemon_orchestrator_obj->start_threads(); 
                                     
                                     kill_strategy_monitor = std::thread([this] {
                                         if (this->kill_strategy) {
                                             this->kill_strategy();
                                         } else {
-                                            //std::this_thread::sleep_for(std::chrono::milliseconds(5000));
-                                            //this->daemon_orchestrator_obj->wait_until_queues_empty();
+                                            while (!shutdown_requested) {
+                                                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                                            }
                                         }
 
                                         this->daemon_orchestrator_obj->kill_threads();
-                                    });
-                                    
-                            
-                                        
+                                    });                                                                 
                                 }
     
     void logger_daemon::log_direct(std::string msg) {

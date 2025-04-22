@@ -43,29 +43,31 @@ namespace input_socket {
                     return;
                 }
 
-                int disable_only_v6 = 0;
-                if (setsockopt(sockfd, IPPROTO_IPV6, IPV6_V6ONLY,
-                               &disable_only_v6, sizeof(disable_only_v6)) == -1) {
+
+                //int disable_only_v6 = 0;
+                int on = 1;
+                if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR,
+                               (char*)&on, sizeof(on)) < 0) {
                     perror("setsockopt(IPV6_V6ONLY)");
                 }
 
-                sockaddr_in6 addr6{};
-                addr6.sin6_family = AF_INET6;
-                addr6.sin6_port   = htons(port);
+                sockaddr_in6 server_addr{};
+                server_addr.sin6_family = AF_INET6;
+                server_addr.sin6_port = htons(port);
 
                 if (host_path.empty()) {
-                    addr6.sin6_addr = in6addr_any;
-                } else if (inet_pton(AF_INET6, host_path.c_str(), &addr6.sin6_addr) != 1) {
+                    server_addr.sin6_addr = in6addr_any;
+                } else if (inet_pton(AF_INET6, host_path.c_str(), &server_addr.sin6_addr) != 1) {
                     perror("inet_pton(AF_INET6)");
                     return;
                 }
 
-                if (bind(sockfd, (sockaddr*)&addr6, sizeof(addr6)) == -1) {
+                if (bind(sockfd, (sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
                     perror("bind(AF_INET6)");
                     return;
                 }
 
-                if (listen(sockfd, backlog) == -1) {
+                if (listen(sockfd, backlog) < 0) {
                     perror("listen(AF_INET6)");
                     return;
                 }
@@ -88,7 +90,7 @@ namespace input_socket {
             close(sockfd);
             sockfd = -1;
         }
-        if (socket_type ==socket_type::UNIX) {
+        if (socket_type == socket_type::UNIX) {
             unlink(socket_path.c_str()); 
         }
     }
