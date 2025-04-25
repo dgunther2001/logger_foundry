@@ -5,6 +5,7 @@ import sys
 def parse_cmd_line_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--ci", nargs="?", const=60, type=int)
+    parser.add_argument("--clean", nargs="?", type=str)
     cmd_line_arguments = parser.parse_args()
     return cmd_line_arguments
 
@@ -12,10 +13,13 @@ def parse_cmd_line_args():
 def main():
     #subprocess.run(["python3", "build_test_foundry.py"], cwd="ci_tests")
     cmd_line_args = parse_cmd_line_args()
+    end_to_end_multi_socket_test = ["python3", "test_unix_and_web_socket.py"]
     if cmd_line_args.ci:
-        test_1 = subprocess.Popen(["python3", "test_unix_and_web_socket.py", "--ci", str(cmd_line_args.ci)], cwd="ci_tests/end_to_end_tests/test_unix_and_web_socket")
-    else:
-        test_1 = subprocess.Popen(["python3", "test_unix_and_web_socket.py"], cwd="ci_tests/end_to_end_tests/test_unix_and_web_socket")
+        end_to_end_multi_socket_test.extend(["--ci", str(cmd_line_args.ci)])
+    if cmd_line_args.clean:
+        end_to_end_multi_socket_test.append("--clean")
+
+    test_1 = subprocess.Popen(end_to_end_multi_socket_test, cwd="ci_tests/end_to_end_tests/test_unix_and_web_socket")
 
     test_1.wait()
 

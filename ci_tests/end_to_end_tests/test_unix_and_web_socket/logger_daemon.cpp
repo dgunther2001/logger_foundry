@@ -8,6 +8,7 @@ int main() {
         .add_unix_socket("tmp/sock2.sock", 15)
         .add_web_socket(50051, 20)
         .add_web_socket(50052, 20)
+        .enable_end_of_test_diagnostics()
         .build();
 
     return 0;

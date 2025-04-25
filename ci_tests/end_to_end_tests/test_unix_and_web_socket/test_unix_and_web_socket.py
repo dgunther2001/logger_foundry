@@ -10,11 +10,17 @@ import signal
 def parse_cmd_line_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--ci", nargs="?", const=60, type=int)
+    parser.add_argument("--clean", nargs="?", type=str)
     cmd_line_arguments = parser.parse_args()
     return cmd_line_arguments
 
-def setup_env():
-    subprocess.run(["python3", "build_test_foundry.py"], cwd="../..")
+def setup_env(clean):
+    build_cmd = ["python3", "build_test_foundry.py"]
+    if clean:
+        build_cmd.append("clean")
+
+    subprocess.run(build_cmd, cwd="../..")
+    
     if os.path.exists("tmp"):
         shutil.rmtree("tmp")
     if os.path.exists("logs"):
@@ -34,6 +40,7 @@ def compile_and_run_test():
     else:
         rpath_flag = ""
 
+    
     subprocess.run(["clang++", "-o", "listener", "-I../../logger_foundry_lib/include",
                 "-L../../logger_foundry_lib/lib",
                 "-std=c++20",  
@@ -108,7 +115,7 @@ def validate_file_contents():
 def main():
     cmd_line_args = parse_cmd_line_args()
 
-    setup_env()
+    setup_env(cmd_line_args.clean)
     listener_proc = compile_and_run_test()
     wait_for_unix_sockets(["tmp/sock1.sock", "tmp/sock2.sock"])
     wait_for_port('::1', 50051)
@@ -117,6 +124,7 @@ def main():
     send_data("tmp/sock2.sock", "HELLOOOO FROM SOCKET 2")
     send_ipv4_message('127.0.0.1', 50051, "HELLOOO FROM IPV4")
     send_ipv6_message('::1', 50052, "HELLOOO FROM IPV6")
+    send_data("tmp/sock1.sock", "HELLOOOO FROM SOCKET 1 AGAIN")
 
     if cmd_line_args.ci:
         time.sleep(10)

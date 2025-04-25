@@ -10,7 +10,7 @@ namespace daemon_orchestrator {
 
     class daemon_orch_obj {
     public:
-        daemon_orch_obj(const std::string& log_file_path, std::vector<socket_config::unix_socket_config> unix_socket_config, std::vector<socket_config::web_socket_config> web_socket_configs, parser_strategy parsing_strategy=nullptr);
+        daemon_orch_obj(const std::string& log_file_path, bool enable_end_of_test_diagnostics, std::vector<socket_config::unix_socket_config> unix_socket_config, std::vector<socket_config::web_socket_config> web_socket_configs, parser_strategy parsing_strategy=nullptr);
         void start_threads();
         void kill_threads();
         void wait_until_queues_empty();
@@ -20,8 +20,12 @@ namespace daemon_orchestrator {
     private:
         void create_log_file(const std::string& log_file_path);
 
-        std::function<void(std::string)> logger_messages_callback = [this](std::string msg) {
-            buffer_parser.enqueue_msg(msg);
+
+        bool enable_end_of_test_diagnostics;
+        std::function<void(std::string)> log_diagnostic_callback = [this](std::string msg) {
+            if (enable_end_of_test_diagnostics) {
+                log_writer.enqueue_msg(msg);
+            }
         };
 
         log_writer::log_writer_obj log_writer;
