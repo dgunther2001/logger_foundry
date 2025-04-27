@@ -10,8 +10,8 @@ extern "C" void default_sigint_handler(int) {
 }
 
 namespace logger_foundry {
-    logger_daemon::logger_daemon(const std::string& log_file_path, bool enable_end_of_test_diagnostics, std::vector<socket_config::unix_socket_config> unix_socket_configs, std::vector<socket_config::web_socket_config> web_socket_configs, parser_strategy parsing_strategy, kill_logger_strategy kill_strategy) :
-                                daemon_orchestrator_obj(std::make_unique<daemon_orchestrator::daemon_orch_obj>(log_file_path, enable_end_of_test_diagnostics, std::move(unix_socket_configs), std::move(web_socket_configs), parsing_strategy)),
+    logger_daemon::logger_daemon(const std::string& log_file_path, bool enable_end_of_test_diagnostics, uint64_t health_diagnostic_interval, std::vector<socket_config::unix_socket_config> unix_socket_configs, std::vector<socket_config::web_socket_config> web_socket_configs, parser_strategy parsing_strategy, kill_logger_strategy kill_strategy) :
+                                daemon_orchestrator_obj(std::make_unique<daemon_orchestrator::daemon_orch_obj>(log_file_path, enable_end_of_test_diagnostics, health_diagnostic_interval, std::move(unix_socket_configs), std::move(web_socket_configs), parsing_strategy)),
                                 kill_strategy{ std::move(kill_strategy) }
                                 { 
                                     if (!this->kill_strategy) {
@@ -36,6 +36,10 @@ namespace logger_foundry {
         this->daemon_orchestrator_obj->log_direct(msg);
     }
 
+    void logger_daemon::log_direct_bypass_parser(std::string msg) {
+        this->daemon_orchestrator_obj->log_direct_bypass_parser(msg);
+    }
+
     logger_daemon::~logger_daemon() {     
         //daemon_orchestrator_obj->kill_threads();             
                      
@@ -54,13 +58,13 @@ namespace logger_foundry {
         return *this;
     }
 
-    logger_daemon_builder& logger_daemon_builder::add_unix_socket(std::string socket_path, uint16_t backlog) {
-        this->unix_socket_configs.emplace_back(socket_config::unix_socket_config{std::move(socket_path), backlog});
+    logger_daemon_builder& logger_daemon_builder::add_unix_socket(std::string socket_path, uint16_t backlog, bool bypass_parser) {
+        this->unix_socket_configs.emplace_back(socket_config::unix_socket_config{std::move(socket_path), backlog, bypass_parser});
         return *this;
     }
 
-    logger_daemon_builder& logger_daemon_builder::add_web_socket(uint16_t port, uint16_t backlog, std::string host) {
-        this->web_socket_configs.emplace_back(socket_config::web_socket_config{port, backlog, std::move(host)});
+    logger_daemon_builder& logger_daemon_builder::add_web_socket(uint16_t port, uint16_t backlog /*, std::string host*/, bool bypass_parser) {
+        this->web_socket_configs.emplace_back(socket_config::web_socket_config{port, backlog, /*std::move(host)*/ "", bypass_parser});
         return *this;
     }
 
@@ -79,8 +83,21 @@ namespace logger_foundry {
         return *this;
     }
 
+    logger_daemon_builder& logger_daemon_builder::enable_uptime_health_diagnostics(uint64_t seconds_frequency) {
+        this->uptime_health_diagnostics_frequency = seconds_frequency;
+        return *this;
+    }
+
     logger_daemon logger_daemon_builder::build() {
-        return logger_daemon(log_file_path, enable_eot_diagnostics, std::move(unix_socket_configs), std::move(web_socket_configs), parser_strategy_inst, kill_logger_strategy_inst);
+        return logger_daemon(log_file_path, enable_eot_diagnostics, uptime_health_diagnostics_frequency, std::move(unix_socket_configs), std::move(web_socket_configs), parser_strategy_inst, kill_logger_strategy_inst);
+    }
+
+    std::unique_ptr<logger_daemon> logger_daemon_builder::build_unique() {
+        return std::unique_ptr<logger_daemon>(new logger_daemon(log_file_path, enable_eot_diagnostics, uptime_health_diagnostics_frequency, std::move(unix_socket_configs), std::move(web_socket_configs), parser_strategy_inst, kill_logger_strategy_inst));
+    }
+
+    std::shared_ptr<logger_daemon> logger_daemon_builder::build_shared() {
+        return std::shared_ptr<logger_daemon>(new logger_daemon(log_file_path, enable_eot_diagnostics, uptime_health_diagnostics_frequency, std::move(unix_socket_configs), std::move(web_socket_configs), parser_strategy_inst, kill_logger_strategy_inst));
     }
 }
 

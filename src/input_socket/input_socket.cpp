@@ -1,8 +1,8 @@
 #include "input_socket.h"
 
 namespace input_socket {
-    void input_socket_obj::enqueue_buffer_parser(std::string msg) {
-        enqueue_to_buffer_parser_callback(msg);
+    void input_socket_obj::enqueue_to_consumer(std::string msg) {
+        enqueue_to_consumer_callback(msg);
     }
 
     void input_socket_obj::init_socket() {
@@ -127,7 +127,7 @@ namespace input_socket {
                         std::string message(buffer, bytes_read); 
                         socket_tracer->bytes_received += bytes_read;
                         socket_tracer->connections_received += 1;
-                        enqueue_buffer_parser(std::move(message)); 
+                        enqueue_to_consumer(std::move(message)); 
                     }
 
                     close(client_fd);
@@ -151,7 +151,7 @@ namespace input_socket {
                         std::string message(buffer, bytes_read);
                         socket_tracer->bytes_received += bytes_read;
                         socket_tracer->connections_received += 1;
-                        enqueue_buffer_parser(std::move(message));
+                        enqueue_to_consumer(std::move(message));
                     }
             
 
@@ -238,8 +238,8 @@ namespace input_socket {
         return *this;
     }
 
-    input_socket_builder& input_socket_builder::set_enqueue_buffer_parser_callback(std::function<void(std::string)> enqueue_to_buffer_parser_callback) {
-        this->enqueue_to_buffer_parser_callback = std::move(enqueue_to_buffer_parser_callback);
+    input_socket_builder& input_socket_builder::set_enqueue_to_consumer_callback(std::function<void(std::string)> enqueue_to_consumer_callback) {
+        this->enqueue_to_consumer_callback = std::move(enqueue_to_consumer_callback);
         return *this;
     }
 
@@ -254,23 +254,22 @@ namespace input_socket {
     }
 
     std::unique_ptr<input_socket_obj> input_socket_builder::build() {
-        return std::make_unique<input_socket_obj>(enqueue_to_buffer_parser_callback, log_diagnostic_callback, parser_thread_active_callback,
+        return std::make_unique<input_socket_obj>(enqueue_to_consumer_callback, log_diagnostic_callback, parser_thread_active_callback,
                                 host_path, socket_path, port, backlog, sock_type);
     }
 
 }
 
 namespace input_socket::util {
-    std::string construct_eot_socket_diagnostic_msg(std::vector<std::optional<input_socket::util::socket_tracer>>& unix_socket_tracers,
-                                                     std::vector<std::optional<input_socket::util::socket_tracer>>& ip_socket_tracers) 
+    std::string construct_eot_socket_diagnostic_msg(std::vector<std::optional<input_socket::util::socket_tracer_health_snapshot>>& socket_tracers) 
     {
         std::ostringstream eot_diagnostic_msg;
         std::stringstream header_intermediate;
-        eot_diagnostic_msg << "\n+----------------------------------------END-OF-TEST-DIAGNOSTICS----------------------------------------+\n";
+        eot_diagnostic_msg << "\n+------------------------------------------END-OF-TEST-DIAGNOSTICS------------------------------------------+\n";
         header_intermediate << std::left;
         header_intermediate << "| " << std::setw(10) << "Type";
         header_intermediate << "| " << std::setw(40) << "Socket Path/Port";
-        header_intermediate << "| " << std::setw(12) << "Uptime";
+        header_intermediate << "| " << std::setw(16) << "Uptime";
         header_intermediate << "| " << std::setw(16) << "# Connections";
         header_intermediate << "| " << std::setw(16) << "Bytes Rec.";
         header_intermediate << "|\n";
@@ -278,26 +277,20 @@ namespace input_socket::util {
         header_intermediate
             << "|" << std::setfill('-') << std::setw(11) << "" << std::setfill(' ')
             << "|" << std::setfill('-') << std::setw(41) << "" << std::setfill(' ')
-            << "|" << std::setfill('-') << std::setw(13) << "" << std::setfill(' ')
+            << "|" << std::setfill('-') << std::setw(17) << "" << std::setfill(' ')
             << "|" << std::setfill('-') << std::setw(17) << "" << std::setfill(' ')
             << "|" << std::setfill('-') << std::setw(17) << "" << std::setfill(' ')
             << "|\n";
 
         eot_diagnostic_msg << header_intermediate.str();
 
-        for (auto const& unix_tracer_struct : unix_socket_tracers) {
-            if (unix_tracer_struct) {
-                eot_diagnostic_msg << format_diagnostics(unix_tracer_struct->socket_or_port, unix_tracer_struct->connections_received, unix_tracer_struct->bytes_received, unix_tracer_struct->socket_uptime().count(), socket_type::UNIX);
+        for (auto const& tracer_struct : socket_tracers) {
+            if (tracer_struct) {
+                eot_diagnostic_msg << format_diagnostics(tracer_struct->socket_or_port, tracer_struct->connections_received, tracer_struct->bytes_received, tracer_struct->socket_uptime().count(), tracer_struct->socket_type);
             }
         }
 
-        for (auto const& ip_tracer_struct : ip_socket_tracers) {
-            if (ip_tracer_struct) {
-                eot_diagnostic_msg << format_diagnostics(ip_tracer_struct->socket_or_port, ip_tracer_struct->connections_received, ip_tracer_struct->bytes_received, ip_tracer_struct->socket_uptime().count(), socket_type::WEB);
-            }
-        }
-
-        eot_diagnostic_msg << "+-------------------------------------------------------------------------------------------------------+\n";
+        eot_diagnostic_msg << "+-----------------------------------------------------------------------------------------------------------+\n";
         return eot_diagnostic_msg.str();
     }
 
@@ -344,7 +337,7 @@ namespace input_socket::util {
         }
 
         uptime_msg << std::fixed << std::setprecision(2) << uptime << "s";
-        output_msg << "| " << std::setw(12) << uptime_msg.str();
+        output_msg << "| " << std::setw(16) << uptime_msg.str();
         output_msg << "| " << std::setw(16) << connections_received;
         output_msg << "| " << std::setw(16) << bytes_received;
 
