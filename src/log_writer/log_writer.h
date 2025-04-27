@@ -14,10 +14,10 @@ namespace log_writer {
     class log_writer_obj {
     public:
         log_writer_obj(const std::string& file_path,
-                       std::function<void(std::string)> log_self_callback
+                       std::function<void(std::string)> log_diagnostic_callback
                       ) : 
                       file_path(file_path),
-                      log_self_callback(log_self_callback)
+                      log_diagnostic_callback(log_diagnostic_callback)
                       {
                         if (!file_path.empty()) valid_log_stream = true;
                       }
@@ -31,7 +31,7 @@ namespace log_writer {
         bool thread_active() { return is_thread_running; }
 
     private:
-        std::function<void(std::string)> log_self_callback;
+        std::function<void(std::string)> log_diagnostic_callback;
 
         void run_thread();
 

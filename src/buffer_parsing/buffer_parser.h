@@ -21,12 +21,12 @@ namespace buffer_parser {
     class buffer_parser_obj {
     public:
         buffer_parser_obj(std::function<void(std::string)> enqueue_to_log_writer_callback, 
-                          std::function<void(std::string)> log_self_callback, 
+                          std::function<void(std::string)> log_diagnostic_callback, 
                           std::function<bool()> log_writer_thread_active_callback,
                           parser_strategy parsing_strategy_in=nullptr
                          ) : 
                          enqueue_to_log_writer_callback(enqueue_to_log_writer_callback),
-                         log_self_callback(log_self_callback),
+                         log_diagnostic_callback(log_diagnostic_callback),
                          log_writer_thread_active_callback(log_writer_thread_active_callback),
 
                          parsing_strategy{
@@ -47,12 +47,13 @@ namespace buffer_parser {
         void stop_thread();
 
         void wait_until_queue_empty();
+        bool queue_empty() { return msgs_to_parse.empty(); }
 
         bool thread_active() { return is_thread_running; }
 
     private:
         std::function<void(std::string)> enqueue_to_log_writer_callback;
-        std::function<void(std::string)> log_self_callback;
+        std::function<void(std::string)> log_diagnostic_callback;
         std::function<bool()> log_writer_thread_active_callback;
 
         parser_strategy parsing_strategy;

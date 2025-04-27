@@ -1,17 +1,17 @@
 #include <logger_foundry/logger_foundry.h>
 #include <chrono>
+#include <memory>
 
 int main() {
-    logger_foundry::logger_daemon orchestrator = logger_foundry::logger_daemon_builder()
+    std::shared_ptr<logger_foundry::logger_daemon> orchestrator = logger_foundry::logger_daemon_builder()
         .set_log_path("logs/log1.log")
         .add_unix_socket("tmp/sock1.sock", 10)
         .add_unix_socket("tmp/sock2.sock", 15)
         .add_web_socket(50051, 20)
         .add_web_socket(50052, 20)
-        .set_kill_strategy([] {
-            std::this_thread::sleep_for(std::chrono::seconds(std::stoi(std::getenv("CLEANUP_TIME"))));
-        })
-        .build();
+        .enable_end_of_test_diagnostics()
+        .enable_uptime_health_diagnostics(4)
+        .build_shared();
 
     return 0;
 }
