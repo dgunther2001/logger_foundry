@@ -14,12 +14,23 @@
 #include <optional>
 #include <sstream>
 #include <iomanip>
+#include <format>
 
 namespace input_socket::util {
 
     enum socket_type {
         UNIX = 1,
         WEB = 10,
+    };
+
+    struct socket_tracer_delta {
+        std::string socket_or_port;
+        uint32_t connections_received;
+        uint32_t connections_delta;
+        uint32_t bytes_received;
+        uint32_t bytes_delta;
+        double uptime;
+        socket_type socket_type;
     };
 
     struct socket_tracer_health_snapshot {
@@ -51,9 +62,19 @@ namespace input_socket::util {
         socket_tracer(uint16_t port) : socket_or_port(std::to_string(port)), socket_type(socket_type::WEB) {}
     };
 
+
+    // END OF TEST
     std::string construct_eot_socket_diagnostic_msg(std::vector<std::optional<input_socket::util::socket_tracer_health_snapshot>>& socket_tracers);
     std::string format_diagnostics(const std::string& socket_or_port, uint32_t connections_received, uint32_t bytes_received, double uptime, socket_type sock_type);
+
+
+    // HEALTH MONITORING
+    std::string construct_health_monitor_diagnostic(std::vector<input_socket::util::socket_tracer_delta>& snapshot_deltas, uint64_t health_interval);
+    std::string format_health_monitor_diagnostics(const input_socket::util::socket_tracer_delta& snapshot_delta);
+
+    // FORMATTING UTILITY
     std::string format_socket_path(const std::string& socket_path);
+    std::string center_string(const std::string& string, uint8_t width, char filler);
 }
 
 

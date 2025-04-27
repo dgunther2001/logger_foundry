@@ -23,6 +23,8 @@ namespace daemon_orchestrator {
         void register_thread_diagnostic(const std::unique_ptr<input_socket::input_socket_obj>& socket);
         void perform_diagnostic_check();
 
+        void start_health_monitor();
+        void kill_health_monitor();
         bool enable_end_of_test_diagnostics;
         uint64_t health_diagnostic_interval;
         std::vector<input_socket::util::socket_tracer_health_snapshot> delta_start;

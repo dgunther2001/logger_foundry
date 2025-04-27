@@ -10,7 +10,7 @@ int main() {
         .add_web_socket(50051, 20)
         .add_web_socket(50052, 20)
         .enable_end_of_test_diagnostics()
-        .enable_uptime_health_diagnostics(7)
+        .enable_uptime_health_diagnostics(4)
         .build_shared();
 
     return 0;

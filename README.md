@@ -16,6 +16,7 @@
 - [Logging From Within the Same Process](#logging-from-within-the-same-process)
 - [Default Behavior Example](#default-behavior-example)
 - [Non-Default Behavior Example](#non-default-behavior-example)
+- [Internal Diagnostic Options](#daemon-diagnostic-options)
 - [Building From Source](#building-from-source-and-project-integration)
 
 ### What Logger Foundry Does For You
@@ -23,7 +24,8 @@
 - Configurable message parsing strategy per logger so that each message ends up in the log file in a format you decide.  
 - Configurable daemon kill strategy that allows you to specify exactly how and when the daemon shuts down.  
 - Provides default parsing and kill strategies so that you can see it work before making your own.  
-- ZERO external runtime dependencies. Just C++ 20 and the Standard Library. All you need out of the box is Python3 to run the build script and verify your installation of those. The script installs the compiler and std lib if they are not in your PATH meaning that Logger Foundry works out of the box.  
+- Built in diagnostics that allow you to set up repeated socket health checks that print to the same log file and/or an end of test report.  
+- ZERO external runtime dependencies. Just C++ 20 and the Standard Library. All you need out of the box is Python3 to run the build script and verify your installation of those. The script installs the compiler and std lib if they are not in your PATH meaning that Logger Foundry works out of the box. (Requires: C++20; CMake; Make; Clang; Python3)  
 - Clean CMake integration. The build script requires an install path so that the header and all libraries go exactly where you want them to.  
 - Full process, thread, and concurrency safety.  
 
@@ -41,7 +43,7 @@ logger_foundry::logger_daemon orchestrator = logger_foundry::logger_daemon_build
     .set_kill_strategy(&my_kill_strategy)
     .build();
 ```
-You have 5 default build options:  
+You have 5 default build options (as well as some extra introspection options I will detail later ([Internal Diagnostics](#daemon-diagnostic-options))):  
 ```
 set_log_path(std::string log_file_path)
 set_parser_strategy(parser_strategy parser_strategy_inst)
@@ -60,14 +62,19 @@ Sets the file path that the daemon will write to. If this is called 0 times, the
 2. ```set_parser_strategy(parser_strategy parser_strategy_inst)```  
 Defines how you are going to decode the messages sent into the daemon. You're just receiving characters (bytes). Logger foundry allows you to specify exactly how you want to decode those bytes and put them in the log file. `parser_strategy` is just an alias for `std::function<std::optional<std::string>(const std::string&)>`. You define a function with a signature ```std::optional<std::string> my_byte_parser(const std::string& bytes)```. Functionally you take in a string and manipulate it into the form that you want in the log file. It's wrapped in an optional type so that you can specify an `std::nullopt` for certain messages you don't want in the log file that will be ignored by the rest of the daemon system. The parser strategy can be defined 0 times, which uses a default parser that just directly prints the received message with an appended newline to the logfile. If this build argument is called once, the daemon will use that strategy. If you define it more than once, it will override the strategy, as with setting the log file path.  
 3. ```set_kill_strategy(kill_logger_strategy kill_logger_strategy_inst)```  
-This defines how the daemon will be shutdown (close all socket connections, flush remaining log messages, and kill all threads). `kill strategy` is just an alias for `std::function<void()>`. Functionally the daemon spins up a monitor thread that periodically watches for the kill condition to be met, signals the other components to shutdown. Basically, once the kill strategy function returns from execution, the monitor thread joins and signals a shutdown. If the kill strategy isn't defined, then the daemon never shuts down and lives indefinitely until a `SIGINT` is received. If this build argument is called once, the daemon will shutdown based on the user defined strategy. If you call it more than once, it will overwrite the previous kill strategy as with setting the log file path.  
-4. ```add_unix_socket(std::string socket_path, uint16_t backlog)```  
-This tells the daemon to listen on a Unix Socket. **NOTE:** that the user is responsible for creating the `.sock` file and verifying it's existence before building the daemon with a Unix Socket with this parameter. The two arguments are `socket_path` and `backlog`. `socket_path` specifies where the `.sock` file used for this connection lives. `backlog` specifies how many pending connections that can be queued while the daemon isn't actively accepting the connection. If this build argument is called 0 times, the daemon doesn't listen on any Unix Sockets. If it is called 1 or more times, the daemon will listen on all Unix Sockets specified.  
-5. ```add_web_socket(uint16_t port, uint16_t backlog, std::string host="")```
-This tells the daemon to listen on a particular port (host parameter is optional and currently unused). **NOTE:** that the user is responsible for opening the port and verifying that it is open before building the daemon with this parameter. The two used arguments are `port` and `backlog`. `port` specifies which port the daemon will listen on for incoming connections. `backlog` specifies how many pending connections that can be queued while the daemon isn't actively accepting the connection. This should be IPv4/IPv6 agnostic. If this build argument is called 0 times, the daemon doesn't listen on any IP Sockets. If it is called one or more times, the daemon will listen on all IP Sockets (ports) specified.  
+This defines how the daemon will be shutdown (close all socket connections, flush remaining log messages, and kill all threads). `kill strategy` is just an alias for `std::function<void()>`. Functionally the daemon spins up a monitor thread that periodically watches for the kill condition to be met, signals the other components to shutdown. Basically, once the kill strategy function returns from execution, the monitor thread joins and signals a shutdown. If the kill strategy isn't defined, then the daemon never shuts down and lives indefinitely until a `SIGINT` is received (it will cleanly flush the system before full shutdown). If this build argument is called once, the daemon will shutdown based on the user defined strategy. If you call it more than once, it will overwrite the previous kill strategy as with setting the log file path.  
+4. ```add_unix_socket(std::string socket_path, uint16_t backlog, bool bypass_parser = false)```  
+This tells the daemon to listen on a Unix Socket. **NOTE:** that the user is responsible for creating the `.sock` file and verifying it's existence before building the daemon with a Unix Socket with this parameter. The three arguments are `socket_path`, `backlog`, and `bypass_parser`. `socket_path` specifies where the `.sock` file used for this connection lives. `backlog` specifies how many pending connections that can be queued while the daemon isn't actively accepting the connection. `bypass_parser` allows the user to specify that any messages received on this socket will bypass the parser strategy (even the default) and log directly to the file. If this build argument is called 0 times, the daemon doesn't listen on any Unix Sockets. If it is called 1 or more times, the daemon will listen on all Unix Sockets specified.  
+5. ```add_web_socket(uint16_t port, uint16_t backlog, bool bypass_parser = false)```
+This tells the daemon to listen on a particular port. **NOTE:** that the user is responsible for opening the port and verifying that it is open before building the daemon with this parameter. The two used arguments are `port`, `backlog`, and `bypass_parser`. `port` specifies which port the daemon will listen on for incoming connections. `backlog` specifies how many pending connections that can be queued while the daemon isn't actively accepting the connection. `bypass_parser` allows the user to specify that any messages received on this socket will bypass the parser strategy (even the default) and log directly to the file. This should be IPv4/IPv6 agnostic. If this build argument is called 0 times, the daemon doesn't listen on any IP Sockets. If it is called one or more times, the daemon will listen on all IP Sockets (ports) specified.  
+
+You are required to call a `build` command after setting all configuration options in the `logger_daemon_builder`. There are three options:  
+1. `build()` returns a `logger_foundry::logger_daemon`.  
+2. `build_unique()` returns a `std::unique_ptr<logger_foundry::logger_daemon>`.  
+2. `build_shared()` returns a `std::shared_ptr<logger_foundry::logger_daemon>`.  
 
 ### Logging From Within the Same Process
-Sometimes you don’t need sockets — or you want to log internal events from the same process without going through the socket stack. Logger Foundry provides that too: `void log_direct(std::string msg);`. Just call it as a method on the logger daemon object you constructed.  
+Sometimes you don’t need sockets — or you want to log internal events from the same process without going through the socket stack. Logger Foundry provides that too: `void log_direct(std::string msg);` and `void log_direct_bypass_parser(std::string msg);`. Just call it as a method on the logger daemon object you constructed. The first will utilize the parser, the second will bypass it and log directly to the log file.  
 
 ### Default Behavior Example
 Default behavior would look as follows. This is the output of one of the end-to-end continuous integration tests listening on 2 Unix Sockets, 1 IPv4, and 1 IPv6 socket.  
@@ -101,6 +108,20 @@ Here is the output with some very simple log messages using those strategies:
 14:14:54  [ERROR] [Logger]  [C++]  Logger Invoked 
 14:14:55  [DEBUG]  [Haskell Main]  [Haskell]  Haskell Main Entered 
 ```
+
+### Daemon Diagnostic Options
+There are two extra options to add when constructing a `logger_foundry::logger_daemon` via the `logger_foundry::logger_daemon_builder`. They both write to the same log file provided to the logger daemon.  
+```
+enable_end_of_test_diagnostics();
+enable_uptime_health_diagnostics(uint64_t seconds_frequency = 60);
+```  
+1. ```enable_end_of_test_diagnostics()```  
+This option adds an end of test report for each socket that is formatted as follows:  
+  <img src="readme_images/eot_diagnostics.png" alt="End of Test Diagnostics" width=600 />  
+3. ```enable_uptime_health_diagnostics(uint64_t seconds_frequency = 60)```  
+This option allows the user to at a specified frequency in seconds (defaults to 60), print socket information to the log file in the following format:  
+    <img src="readme_images/health_diagnostics.png" alt="Health Diagnostics" width=600 />   
+
 
 ### Building From Source and Project Integration
 

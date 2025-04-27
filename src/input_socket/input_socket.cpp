@@ -294,30 +294,6 @@ namespace input_socket::util {
         return eot_diagnostic_msg.str();
     }
 
-
-
-    std::string format_socket_path(const std::string& socket_path) {
-        std::vector<std::string> path_components;
-        std::stringstream socket_path_as_stream(socket_path);
-        std::string path_component;
-        while (std::getline(socket_path_as_stream, path_component, '/')) {
-            if (!path_component.empty())
-                path_components.push_back(path_component);
-        }
-        if (path_components.size() < 4) {
-            return std::move(socket_path);
-        }
-        std::ostringstream output_string;
-
-        output_string << path_components.at(0);
-        
-        output_string << "/.../";
-        output_string << path_components.at(path_components.size() - 2) << "/";
-        output_string << path_components.at(path_components.size() - 1);
-
-        return output_string.str();
-    }
-
     std::string format_diagnostics(const std::string& socket_or_port, uint32_t connections_received, uint32_t bytes_received, double uptime, socket_type sock_type) {
         std::stringstream output_msg;
         output_msg << std::left;
@@ -343,5 +319,108 @@ namespace input_socket::util {
 
         output_msg << "|\n";
         return (std::move(output_msg.str()));
+    }
+
+    std::string construct_health_monitor_diagnostic(std::vector<input_socket::util::socket_tracer_delta>& snapshot_deltas, uint64_t health_interval) {
+        std::stringstream output_msg;
+        std::stringstream header_intermediate;
+
+
+        output_msg << "\n+-----------------------------------------------------------------------------------------------------------------------------------+\n";
+        output_msg << "|";
+        output_msg << center_string(("Health Report @ " + std::format("{:%T}", time_point_cast<std::chrono::seconds>(std::chrono::system_clock::now())) + " (Interval = " + std::to_string(health_interval) + "s)"), 131, ' ');
+        output_msg << "|\n";
+        output_msg << "+-----------------------------------------------------------------------------------------------------------------------------------+\n";
+
+        header_intermediate << std::left;
+        header_intermediate << "| " << std::setw(10) << "Type";
+        header_intermediate << "| " << std::setw(40) << "Socket Path/Port";
+        header_intermediate << "| " << std::setw(16) << "Uptime";
+        header_intermediate << "| " << std::setw(16) << "# Connections";
+        header_intermediate << "| " << std::setw(11) << "Δ Conn";
+        header_intermediate << "| " << std::setw(16) << "Bytes Rec.";
+        header_intermediate << "| " << std::setw(11) << "Δ Bytes";
+        header_intermediate << "|\n";
+
+        header_intermediate
+            << "|" << std::setfill('-') << std::setw(11) << "" << std::setfill(' ')
+            << "|" << std::setfill('-') << std::setw(41) << "" << std::setfill(' ')
+            << "|" << std::setfill('-') << std::setw(17) << "" << std::setfill(' ')
+            << "|" << std::setfill('-') << std::setw(17) << "" << std::setfill(' ')
+            << "|" << std::setfill('-') << std::setw(11) << "" << std::setfill(' ')
+            << "|" << std::setfill('-') << std::setw(17) << "" << std::setfill(' ')
+            << "|" << std::setfill('-') << std::setw(11) << "" << std::setfill(' ')
+            << "|\n";
+
+        output_msg << header_intermediate.str();
+
+        for (auto const& snapshot_delta : snapshot_deltas) {
+            output_msg << format_health_monitor_diagnostics(snapshot_delta);
+        }
+
+        output_msg << "+-----------------------------------------------------------------------------------------------------------------------------------+\n\n";
+        return output_msg.str();
+    }
+
+    std::string format_health_monitor_diagnostics(const input_socket::util::socket_tracer_delta& snapshot_delta) {
+        std::stringstream output_msg;
+        output_msg << std::left;
+        std::stringstream uptime_msg;
+
+        switch (snapshot_delta.socket_type) {
+            case socket_type::UNIX: {
+                output_msg << "| " << std::setw(10) << "Unix ";
+                output_msg << "| " << std::setw(40) << input_socket::util::format_socket_path(snapshot_delta.socket_or_port);
+                break;
+            }
+            case socket_type::WEB: {
+                output_msg << "| " << std::setw(10) << "IPv6 ";
+                output_msg << "| " << std::setw(40) << snapshot_delta.socket_or_port;
+                break;
+            }
+        }
+
+        uptime_msg << std::fixed << std::setprecision(2) << snapshot_delta.uptime << "s";
+        output_msg << "| " << std::setw(16) << uptime_msg.str();
+        output_msg << "| " << std::setw(16) << snapshot_delta.connections_received;
+        output_msg << "| " << std::setw(10) << snapshot_delta.connections_delta;
+        output_msg << "| " << std::setw(16) << snapshot_delta.bytes_received;
+        output_msg << "| " << std::setw(10) << snapshot_delta.bytes_delta;
+
+        output_msg << "|\n";
+
+        return output_msg.str();
+    }
+
+
+
+    std::string format_socket_path(const std::string& socket_path) {
+        std::vector<std::string> path_components;
+        std::stringstream socket_path_as_stream(socket_path);
+        std::string path_component;
+        while (std::getline(socket_path_as_stream, path_component, '/')) {
+            if (!path_component.empty())
+                path_components.push_back(path_component);
+        }
+        if (path_components.size() < 4) {
+            return std::move(socket_path);
+        }
+        std::ostringstream output_string;
+
+        output_string << path_components.at(0);
+        
+        output_string << "/.../";
+        output_string << path_components.at(path_components.size() - 2) << "/";
+        output_string << path_components.at(path_components.size() - 1);
+
+        return output_string.str();
+    }
+
+    std::string center_string(const std::string& string, uint8_t width, char filler) {
+        if (string.size() > width) return string;
+        uint8_t padding = width - string.size();
+        uint8_t left = padding / 2;
+        uint8_t right = padding - left;
+        return (std::string(left, filler) + string + std::string(right, filler));
     }
 }

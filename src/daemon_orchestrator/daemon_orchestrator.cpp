@@ -65,38 +65,12 @@ namespace daemon_orchestrator {
             ip_socket->init_thread();
         }
         
-        if (health_diagnostic_interval != 0) {
-
-
-            is_health_thread_running.store(true);
-            health_monitoring_thread = std::thread([this] {
-                std::unique_lock<std::mutex> lock(health_thread_mutex);
-                while(is_health_thread_running.load()) {
-                    health_thread_condition_variable.wait_for(lock, std::chrono::seconds(health_diagnostic_interval), [this] {
-                        return !is_health_thread_running.load();
-                    });
-
-                    if (!is_health_thread_running.load())
-                        break;
-                    //std::this_thread::sleep_for(std::chrono::milliseconds(1000*health_diagnostic_interval));
-                    perform_diagnostic_check();
-                }
-            });
-            // spawn the health monitoring thread...
-        }
+        start_health_monitor();
     }
 
     void daemon_orch_obj::kill_threads() {
 
-        // kill the health monitoring thread first and wait for it to join...
-        {
-            std::lock_guard<std::mutex> health_thread_lock(health_thread_mutex);
-            is_health_thread_running.store(false);
-        }
-        health_thread_condition_variable.notify_one();
-        if (health_monitoring_thread.joinable()) {
-            health_monitoring_thread.join();
-        }
+        kill_health_monitor();
             
         std::vector<std::optional<input_socket::util::socket_tracer_health_snapshot>> socket_tracers;
 
@@ -165,26 +139,64 @@ namespace daemon_orchestrator {
             delta_end.push_back(ip_socket->get_socket_tracer_snapshot().value());
         }
 
-        log_writer.enqueue_msg("\nHEALTH DIAGNOSTIC CHECK\n");
-    
-        std::stringstream out_string;
-        // starttime endtime .count
-        double uptime = std::chrono::duration<double>(current_time - delta_end.at(0).start_time).count();
-        out_string << "UPTIME: " << std::to_string(uptime) << "\n";
-        out_string << "SOCKET/PORT: " << delta_end.at(0).socket_or_port << "\n";
-        out_string << "TOTAL BYTES READ: " << delta_end.at(0).bytes_received << "\n";
-        out_string << "TOTAL CONNECTIONS: " << delta_end.at(0).connections_received << "\n";
-        out_string << "Δ BYTES: " << (delta_end.at(0).bytes_received - delta_start.at(0).bytes_received) << "\n";
-        out_string << "Δ CONN: " << (delta_end.at(0).connections_received - delta_start.at(0).connections_received) << "\n";
-        
-        log_writer.enqueue_msg(out_string.str());
+
+        /*
+            struct socket_tracer_delta {
+                std::string socket_or_port;
+                uint32_t connections_received;
+                uint32_t connections_delta;
+                uint32_t bytes_received;
+                uint32_t bytes_delta;
+                double uptime;
+                socket_type socket_type;
+            };
+        */
+
+        std::vector<input_socket::util::socket_tracer_delta> deltas;
+        for (int tracer = 0; tracer < delta_end.size(); tracer++) {
+            deltas.push_back(input_socket::util::socket_tracer_delta{
+                delta_end.at(tracer).socket_or_port,
+                delta_end.at(tracer).connections_received,
+                (delta_end.at(tracer).connections_received - delta_start.at(tracer).connections_received),
+                delta_end.at(tracer).bytes_received,
+                (delta_end.at(tracer).bytes_received - delta_start.at(tracer).bytes_received),
+                (std::chrono::duration<double>(current_time - delta_end.at(tracer).start_time).count()),
+                delta_end.at(tracer).socket_type
+            });
+        }
+
+        log_writer.enqueue_msg(input_socket::util::construct_health_monitor_diagnostic(deltas, health_diagnostic_interval));
 
         delta_start = std::move(delta_end);
+    }
 
-        
-        // diff delta start and delta end 
-        // do something with those diffs
-        // set delta start to delta and and clear delta end
+    void daemon_orch_obj::start_health_monitor() {
+        if (health_diagnostic_interval == 0) return;
+        is_health_thread_running.store(true);
+
+        health_monitoring_thread = std::thread([this] {
+            std::unique_lock<std::mutex> lock(health_thread_mutex);
+            while (is_health_thread_running.load()) {
+                health_thread_condition_variable.wait_for(lock, std::chrono::seconds(health_diagnostic_interval));
+
+                if (!is_health_thread_running.load()) break;
+
+                perform_diagnostic_check();
+            }
+        });
+    }
+
+    void daemon_orch_obj::kill_health_monitor() {
+        {
+            std::lock_guard<std::mutex> health_guard(health_thread_mutex);
+            is_health_thread_running.store(false);
+        }
+
+        health_thread_condition_variable.notify_one();
+
+        if (health_monitoring_thread.joinable()) {
+            health_monitoring_thread.join();
+        }
     }
 
     void daemon_orch_obj::wait_until_queues_empty() {

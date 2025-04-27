@@ -124,7 +124,7 @@ def main():
     send_data("tmp/sock2.sock", "HELLOOOO FROM SOCKET 2")
     send_ipv4_message('127.0.0.1', 50051, "HELLOOO FROM IPV4")
     send_ipv6_message('::1', 50052, "HELLOOO FROM IPV6")
-    time.sleep(3)
+    time.sleep(5)
     send_data("tmp/sock1.sock", "HELLOOOO FROM SOCKET 1 AGAIN")
 
     if cmd_line_args.ci:
