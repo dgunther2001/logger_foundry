@@ -45,6 +45,11 @@ namespace log_writer {
         bool is_thread_running = false;
         std::string file_path;
 
-
+        // resiliency mechanisms
+        static constexpr uint16_t QUEUE_MAX_SIZE = 5000;
+        static constexpr uint8_t BATCH_SIZE_MAX = 100;
+        static constexpr auto FLUSH_INTERVAL = std::chrono::milliseconds(500);
+        uint64_t dropped_messages = 0;
+        
     };
 }

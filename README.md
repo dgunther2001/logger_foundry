@@ -118,6 +118,7 @@ enable_uptime_health_diagnostics(uint64_t seconds_frequency = 60);
 1. ```enable_end_of_test_diagnostics()```  
 This option adds an end of test report for each socket that is formatted as follows:  
   <img src="readme_images/eot_diagnostics.png" alt="End of Test Diagnostics" width=600 />  
+  
 3. ```enable_uptime_health_diagnostics(uint64_t seconds_frequency = 60)```  
 This option allows the user to at a specified frequency in seconds (defaults to 60), print socket information to the log file in the following format:  
     <img src="readme_images/health_diagnostics.png" alt="Health Diagnostics" width=600 />   
