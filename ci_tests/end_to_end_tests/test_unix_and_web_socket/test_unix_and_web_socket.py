@@ -45,7 +45,7 @@ def compile_and_run_test():
                 "-L../../logger_foundry_lib/lib",
                 "-std=c++20",  
                 rpath_flag,
-                "-llogger_foundry",
+                "-llogger_daemon",
                 "-ldaemon_orchestrator_lib",
                 "-lbuffer_parsing_lib",
                 "-llog_writer_lib",

@@ -4,7 +4,7 @@
 #include "input_socket.h"
 #include "log_writer.h"
 
-#include "../../config_headers/socket_config_structs.h"
+#include "../config_headers/socket_config_structs.h"
 
 namespace daemon_orchestrator {
 
